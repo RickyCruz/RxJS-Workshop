@@ -1,39 +1,45 @@
 import { Observable, Observer } from 'rxjs';
 
-// const obs$ = Observable.create();
-const obs$ = new Observable<string>(subscriber => {
-    subscriber.next('Hello');
-    subscriber.next('World');
-
-    subscriber.next('Hello 1');
-    subscriber.next('World 2');
-
-    // Force an error
-    // const person = undefined;
-    // person.name = 'John Doe';
-
-    subscriber.complete();
-
-    subscriber.next('Hello 2');
-    subscriber.next('World 3');
-});
-
-// obs$.subscribe(console.log);
-
-// obs$.subscribe(response => {
-//     console.log(response)
-// });
-
-// obs$.subscribe(
-//     value => console.log('Next: ', value),
-//     error => console.warn('Error: ', error),
-//     () => console.info('Complete')
-// );
-
 const observer: Observer<any> = {
     next: value => console.log('[Next]: ', value),
     error: error => console.warn('[Error]: ', error),
-    complete: () => console.info('[Observer Complete]')
+    complete: () => console.info('[Complete]')
 };
 
-obs$.subscribe(observer);
+const interval$ = new Observable<number>(subscriber => {
+    let count = 0;
+
+    // Memory leak
+    // setInterval(() => {
+    //     count++;
+    //     subscriber.next(count);
+
+    //     console.log('Count: ', count);
+    // }, 1000);
+
+    // Avoid memory leak
+    const interval = setInterval(() => {
+        count++;
+        subscriber.next(count);
+
+        console.log('Count: ', count);
+    }, 1000);
+
+    return () => {
+        clearInterval(interval);
+
+        console.log('Interval destroyed');
+    };
+});
+
+const subscription = interval$.subscribe(num => console.log('Num: ', num));
+const subscription2 = interval$.subscribe(num => console.log('Num: ', num));
+const subscription3 = interval$.subscribe(num => console.log('Num: ', num));
+
+setTimeout(() => {
+    subscription.unsubscribe();
+    subscription2.unsubscribe();
+    subscription3.unsubscribe();
+
+    console.log('Timeout completed');
+}, 3000);
